@@ -1,0 +1,149 @@
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - ./scripts/manpages.sh
+    - ./scripts/completions.sh
+
+builds:
+  -
+    binary: gitlabci-last-pipeline-run
+    ldflags: -s -w -X main.version={{ .Version }}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  -
+    builds:
+      - gitlabci-last-pipeline-run
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      amd64: x86_64
+
+nfpms:
+  - builds:
+      - gitlabci-last-pipeline-run
+    vendor: MichaelPereira
+    homepage:  https://github.com/MichaelPereira/gitlabci-last-pipeline-run
+    maintainer: "Tom Morelly <tommorelly@gmail.com>"
+    description: "A general purpose golang CLI template for Github and Gitlab"
+    license: GPL-3.0
+    formats:
+      - apk
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: ./manpages/gitlabci-last-pipeline-run.1.gz
+        dst: /usr/share/man/man1/gitlabci-last-pipeline-run.1.gz
+        file_info:
+          mode: 0644
+      - src: ./completions/gitlabci-last-pipeline-run.bash
+        dst: /usr/share/bash-completion/completions/gitlabci-last-pipeline-run
+        file_info:
+          mode: 0644
+      - src: ./completions/gitlabci-last-pipeline-run.fish
+        dst: /usr/share/fish/vendor_completions.d/gitlabci-last-pipeline-run.fish
+        file_info:
+          mode: 0644
+      - src: ./completions/gitlabci-last-pipeline-run.zsh
+        dst:  /usr/share/zsh/vendor-completions/_gitlabci-last-pipeline-run
+        file_info:
+          mode: 0644
+
+dockers:
+- image_templates:
+  - 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}-amd64'
+  - 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}-amd64'
+  dockerfile: Dockerfile
+  use: buildx
+  build_flag_templates:
+  - "--pull"
+  - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/MichaelPereira/gitlabci-last-pipeline-run/master/README.md"
+  - "--label=io.artifacthub.package.maintainers=[{\"name\":\"Tom Morelly\",\"email\":\"tommorelly@gmail.com\"}]"
+  - "--label=io.artifacthub.package.license=MIT"
+  - "--label=org.opencontainers.image.description=A general purpose golang CLI template for Github and Gitlab"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.name={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.source={{.GitURL}}"
+  - "--platform=linux/amd64"
+- image_templates:
+  - 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}-arm64'
+  - 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}-arm64'
+  dockerfile:  Dockerfile
+  use: buildx
+  build_flag_templates:
+  - "--pull"
+  - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/MichaelPereira/gitlabci-last-pipeline-run/master/README.md"
+  - "--label=io.artifacthub.package.logo-url=https://raw.githubusercontent.com/MichaelPereira/gitlabci-last-pipeline-run/master/www/static/images/logo.png"
+  - "--label=io.artifacthub.package.maintainers=[{\"name\":\"Tom Morelly\",\"email\":\"tommorelly@gmail.com\"}]"
+  - "--label=io.artifacthub.package.license=MIT"
+  - "--label=org.opencontainers.image.description=A general purpose golang CLI template for Github and Gitlab"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.name={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.source={{.GitURL}}"
+  - "--platform=linux/arm64"
+  goarch: arm64
+
+docker_manifests:
+- name_template: 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}'
+  image_templates:
+  - 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}-amd64'
+  - 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}-arm64'
+- name_template: 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}'
+  image_templates:
+  - 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}-amd64'
+  - 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}-arm64'
+- name_template: 'MichaelPereira/{{.ProjectName}}:latest'
+  image_templates:
+  - 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}-amd64'
+  - 'MichaelPereira/{{.ProjectName}}:{{ .Tag }}-arm64'
+- name_template: 'ghcr.io/MichaelPereira/{{.ProjectName}}:latest'
+  image_templates:
+  - 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}-amd64'
+  - 'ghcr.io/MichaelPereira/{{.ProjectName}}:{{ .Tag }}-arm64'
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+    - '^test:'
+    - '^chore'
+    - 'merge conflict'
+    - Merge pull request
+    - Merge remote-tracking branch
+    - Merge branch
+    - go mod tidy
+  groups:
+    - title: Dependency updates
+      regexp: '^.*?(feat|fix)\(deps\)!?:.+$'
+      order: 300
+    - title: 'New Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 100
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 200
+    - title: 'Documentation updates'
+      regexp: ^.*?doc(\([[:word:]]+\))??!?:.+$
+      order: 400
+    - title: Other work
+      order: 9999
